@@ -1,0 +1,472 @@
+for _, v in next, getconnections(game:GetService('ScriptContext').Error) do
+    v:Disable()
+end
+getgenv().tocolor = function(color_table) return Color3.fromRGB(color_table.R*255,color_table.G*255,color_table.B*255) end
+getgenv().fromcolor = function(color_table) return {R = color_table.R, G = color_table.G, B = color_table.B} end
+getgenv().drawings = {fov = Drawing.new("Circle")}
+if not getgenv().library then
+    getgenv().library = loadstring(game:HttpGet("https://pastebin.com/raw/qzfHtU16"))()
+end
+local values = {}
+local cheats = {
+    name = "Astolfohook",
+    darkmode = true,
+    togglekey = Enum.KeyCode.Insert,
+    [1] = {
+        name = "Aimbot",
+        [1] = {
+            name = "Activation",
+            [1] = {"Checkbox", "Enabled", nil, {}, "Enabled"},
+            [2] = {"Dropdown", "Method", nil, {options = {"Key", "Shoot"}}, "Method"},
+            [3] = {"Keybind", "Key", nil, {}, "Key"},
+        },
+        [2] = {
+            name = "Targeting",
+            [1] = {"Dropdown", "Hitbox", nil, {options = {"Head", "Torso"}}, "Hitbox"},
+            [2] = {"Checkbox", "Visible Check", nil, {}, "Visible Check"},
+            [3] = {"Checkbox", "Ignore Friends (BETA)", nil, {}, "Ignore Friends"},
+            [4] = {"Checkbox", "Ignore Group", nil, {}, "Ignore Group"},
+            [5] = {"Textbox", "Group ID", nil, {placeholder = "Group ID", default = "8438398"}, "Group ID"},
+            [6] = {"Dropdown", "Priority", nil, {options = {"Mouse Distance", "Physical Distance", "Lowest Health"}}, "Priority"},
+        },
+        [3] = {
+            name = "Settings",
+            [1] = {"Slider", "FOV Size", function(value) drawings.fov.Radius = value end, {min = 0, max = 700, precise = true, default = 250}, "FOV Size"},
+            [2] = {"Checkbox", "Draw FOV", nil, {}, "Draw FOV"},
+            [3] = {"Colorpicker", "Color", function(color) drawings.fov.Color = tocolor(color) end, {color = Color3.fromRGB(255,255,255)}, "FOV Color"},
+            [4] = {"Slider", "Transparency", function(value) drawings.fov.Transparency = (100-value)/100 end, {min = 0, max = 100, precise = true, default = 0}, "FOV Transparency"},
+            [5] = {"Checkbox", "Filled FOV", function(state) drawings.fov.Filled = state end, {}, "Filled FOV"},
+            [6] = {"Slider", "X Smoothing", nil, {min = 2, max = 50, precise = true, default = 2}, "X Smoothing"},
+            [7] = {"Slider", "Y Smoothing", nil, {min = 2, max = 50, precise = true, default = 2}, "Y Smoothing"},
+            [8] = {"Slider", "Min Distance", nil, {min = 0, max = 100, precise = true, default = 0}, "Min Distance"},
+            [9] = {"Slider", "Max Distance", nil, {min = 500, max = 4000, precise = true, default = 4000}, "Max Distance"},
+            [10] = {"Checkbox", "Forcefield Check", nil, {}, "Forcefield Check"},
+            [11] = {"Slider", "Target Chance", nil, {min = 0, max = 100, precise = true, default = 100}, "Target Chance"},
+        },
+        [4] = {
+            name = "Silent Aim",
+            [1] = {"Checkbox", "Enabled", nil, {}, "Enabled"},
+            [2] = {"Checkbox", "Disable Aimbot", nil, {}, "Disable Aimbot"},
+        },
+    },
+    [2] = {
+        name = "Visuals",
+        [1] = {
+            name = "ESP",
+            [1] = {"Checkbox", "Box", nil, {}, "Box"},
+            [2] = {"Colorpicker", "Color", nil, {color = Color3.fromRGB(255,255,255)}, "Box Color"},
+            [3] = {"Checkbox", "Name", nil, {}, "Name"},
+            [4] = {"Colorpicker", "Color", nil, {color = Color3.fromRGB(255,255,255)}, "Name Color"},
+            [5] = {"Checkbox", "Health", nil, {}, "Health"},
+            [6] = {"Colorpicker", "Color", nil, {color = Color3.fromRGB(0,255,0)}, "Health Color"},
+        },
+        [2] = {
+            name = "Safe ESP",
+            [1] = {"Checkbox", "Enabled", nil, {}, "Enabled"},
+            [2] = {"Colorpicker", "Color", nil, {color = Color3.fromRGB(255,255,255)}, "Color"},
+            [3] = {"Slider", "Transparency", nilf, {min = 0, max = 100, precise = true, default = 0}, "Transparency"},
+        },
+        [3] = {
+            name = "Register ESP",
+            [1] = {"Checkbox", "Enabled", nil, {}, "Enabled"},
+            [2] = {"Colorpicker", "Color", nil, {color = Color3.fromRGB(255,255,255)}, "Color"},
+            [3] = {"Slider", "Transparency", nilf, {min = 0, max = 100, precise = true, default = 0}, "Transparency"},
+        },
+        [4] = {
+            name = "ATM ESP",
+            [1] = {"Checkbox", "Enabled", nil, {}, "Enabled"},
+            [2] = {"Colorpicker", "Color", nil, {color = Color3.fromRGB(255,255,255)}, "Color"},
+            [3] = {"Slider", "Transparency", nil, {min = 0, max = 100, precise = true, default = 0}, "Transparency"},
+        },
+    },
+    [3] = {
+        name = "Misc",
+        [1] = {
+            name = "Configuration",
+            [1] = {"Textbox", "Config Name", nil, {placeholder = "Name"}, "Name"},
+            [2] = {"Button", "Save Config", function() game.Astolfohook.ConfigEvent:Fire("SaveConfig", values["Misc"]["Configuration"]["Name"]..".cfg") end, {text = "Save"}, "Save_Config"},
+            [3] = {"Button", "Load Config", function() game.Astolfohook.ConfigEvent:Fire("LoadConfig", values["Misc"]["Configuration"]["Name"]..".cfg") end, {text = "Load"}, "Load_Config"},
+        },
+    },
+}
+local cheat_is_loaded
+local ui_is_loaded = false
+if cheats then
+    local ui = library.new(cheats.darkmode, cheats.name)
+    ui.ChangeToggleKey(cheats.togglekey)
+    if not game:FindFirstChild(cheats.name) then
+        local Service, ConfigEvent, ApiEvent = Instance.new("Model"), Instance.new("BindableEvent"), Instance.new("BindableEvent")
+        Service.Name, ConfigEvent.Name, ApiEvent.Name = cheats.name, "ConfigEvent", "ApiEvent"
+        Service.Parent, ConfigEvent.Parent, ApiEvent.Parent = game, Service, Service
+    end
+    game[cheats.name].ConfigEvent.Event:Connect(function(...)
+        local args = {...}
+        if args[2] and ui_is_loaded then
+            if args[1] == "SaveConfig" then
+                writefile(args[2], game:GetService("HttpService"):JSONEncode(values))
+            end
+        end
+    end)
+    for tabs = 1, #cheats do
+        local tab = ui:Category(cheats[tabs].name)
+        values[cheats[tabs].name] = {}
+        for sections = 1, #cheats[tabs] do
+            local section = tab:Sector(cheats[tabs][sections].name)
+            values[cheats[tabs].name][cheats[tabs][sections].name] = {}
+            if cheats[tabs][sections].isLua then
+                luatab = section
+            end
+            for obj = 1, #cheats[tabs][sections] do
+                local cheat = cheats[tabs][sections][obj]
+                cheat[3] = cheat[3] or function() end
+                local gui = section:Cheat(cheat[1], cheat[2], function(value)
+                    values[cheats[tabs].name][cheats[tabs][sections].name][cheat[5]] = cheat[1] == "Colorpicker" and fromcolor(value) or value
+                    cheat[3](value)
+                end, cheat[4])
+                values[cheats[tabs].name][cheats[tabs][sections].name][cheat[5]] = cheat[1] == "Colorpicker" and fromcolor(gui.value) or gui.value
+                game[cheats.name].ConfigEvent.Event:Connect(function(...)
+                    local args = {...}
+                    if ui_is_loaded and args[1] == "LoadConfig" then
+                        if args[2] and isfile(args[2]) then
+                            local contents = game:GetService("HttpService"):JSONDecode(readfile(args[2]))
+                            if contents[cheats[tabs].name][cheats[tabs][sections].name] ~= nil and contents[cheats[tabs].name][cheats[tabs][sections].name][cheat[5]] ~= nil then
+                                if cheat[1] ~= "Button" and cheat[1] ~= "Colorpicker" then
+                                    gui:SetValue(contents[cheats[tabs].name][cheats[tabs][sections].name][cheat[5]])
+                                end
+                                if cheat[1] == "Colorpicker" then
+                                    gui:SetValue(tocolor(contents[cheats[tabs].name][cheats[tabs][sections].name][cheat[5]]))
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+            ui_is_loaded = true
+        end
+    end
+end
+repeat wait() until ui_is_loaded
+
+local plrs = game:GetService("Players")
+local lplr = plrs.LocalPlayer
+local cam = workspace.CurrentCamera
+local mouse = lplr:GetMouse()
+local target
+
+drawings.fov.Thickness = 1
+drawings.fov.Transparency = (100-values["Aimbot"]["Settings"]["FOV Transparency"])/100
+drawings.fov.Color = tocolor(values["Aimbot"]["Settings"]["FOV Color"])
+
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = tostring(getnamecallmethod())
+    
+    if method == "FindPartOnRayWithIgnoreList" and target ~= nil and values["Aimbot"]["Silent Aim"]["Enabled"] and not checkcaller() then
+        args[1] = Ray.new(cam.CFrame.Position, (target.Character[values["Aimbot"]["Targeting"]["Hitbox"]].Position - cam.CFrame.Position).unit * 500)
+    end
+
+    return oldNamecall(self, unpack(args))
+end)
+
+local aimbot = game:GetService("RunService").RenderStepped:Connect(function()
+    drawings.fov.Position = Vector2.new(mouse.X, mouse.Y + 36)
+    drawings.fov.Visible = values["Aimbot"]["Activation"]["Enabled"] and values["Aimbot"]["Settings"]["Draw FOV"] or false
+    target = nil
+    if values["Aimbot"]["Activation"]["Enabled"] and lplr.Character ~= nil and lplr.Character:FindFirstChild("Humanoid") and lplr.Character:FindFirstChild("Humanoid").Health > 0 then
+        if values["Aimbot"]["Activation"]["Method"] == "Key" and values["Aimbot"]["Activation"]["Key"] ~= nil and game:GetService("UserInputService"):IsKeyDown(values["Aimbot"]["Activation"]["Key"]) or values["Aimbot"]["Activation"]["Method"] == "Shoot" and game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+            local chosen
+            do
+                local closest = math.huge
+                for _,plr in pairs(plrs:GetPlayers()) do
+                    if plr.Name ~= lplr.Name and plr.Character ~= nil and plr.Character:FindFirstChild("Humanoid") and plr.Character:FindFirstChild("Humanoid").Health > 0 then
+                        local distance = (plr.Character.HumanoidRootPart.Position - lplr.Character.HumanoidRootPart.Position).Magnitude
+                        if distance < values["Aimbot"]["Settings"]["Max Distance"] and distance > values["Aimbot"]["Settings"]["Min Distance"] then
+                            if values["Aimbot"]["Settings"]["Forcefield Check"] and plr.Character:FindFirstChildOfClass("ForceField") == nil or not values["Aimbot"]["Settings"]["Forcefield Check"] then
+                                if values["Aimbot"]["Targeting"]["Ignore Friends"] and not plr:IsFriendsWith(lplr.UserId) or not values["Aimbot"]["Targeting"]["Ignore Friends"] then
+                                    if values["Aimbot"]["Targeting"]["Ignore Group"] and values["Aimbot"]["Targeting"]["Group ID"] ~= "" and not plr:IsInGroup(values["Aimbot"]["Targeting"]["Group ID"]) or not values["Aimbot"]["Targeting"]["Ignore Group"] then
+                                        local ignore = {lplr.Character, cam}
+                                        if not values["Aimbot"]["Targeting"]["Visible Check"] then
+                                            table.insert(ignore, workspace.Map)
+                                        end
+                                        local ray = Ray.new(cam.CFrame.Position, (plr.Character[values["Aimbot"]["Targeting"]["Hitbox"]].CFrame.p - cam.CFrame.Position).unit*500)
+                                        local hit,pos = workspace:FindPartOnRayWithIgnoreList(ray, ignore, false, true)
+                                        if hit and hit:FindFirstAncestor(plr.Name) then
+                                            local pos, onScreen = cam:WorldToViewportPoint(plr.Character[values["Aimbot"]["Targeting"]["Hitbox"]].CFrame.p)
+                                            local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                                            if magnitude < values["Aimbot"]["Settings"]["FOV Size"] and onScreen then
+                                                if values["Aimbot"]["Targeting"]["Priority"] == "Mouse Distance" and closest > magnitude then
+                                                    closest = magnitude
+                                                    chosen = plr
+                                                end
+                                                if values["Aimbot"]["Targeting"]["Priority"] == "Physical Distance" and closest > distance then
+                                                    closest = distance
+                                                    chosen = plr
+                                                end
+                                                if values["Aimbot"]["Targeting"]["Priority"] == "Lowest Health" and closest > plr.Character.Humanoid.Health then
+                                                    closest = plr.Character.Humanoid.Health
+                                                    chosen = plr
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            if math.random(0,100) <= values["Aimbot"]["Settings"]["Target Chance"] and chosen ~= nil then
+                target = chosen
+                local screenpos = cam:WorldToScreenPoint(chosen.Character[values["Aimbot"]["Targeting"]["Hitbox"]].Position)
+                local pos = Vector2.new(screenpos.X - mouse.X, screenpos.Y - mouse.Y)
+                if values["Aimbot"]["Silent Aim"]["Enabled"] and not values["Aimbot"]["Silent Aim"]["Disable Aimbot"] or not values["Aimbot"]["Silent Aim"]["Enabled"] then
+                    mousemoverel(pos.x/values["Aimbot"]["Settings"]["X Smoothing"], pos.y/values["Aimbot"]["Settings"]["Y Smoothing"])
+                end
+            end
+        end
+    end
+end)
+while true do
+    wait(0.2)
+    pcall(function()
+    for _,char in pairs(workspace.Characters:GetChildren()) do
+        if char:FindFirstChild("HumanoidRootPart") and char.Name ~= lplr.Name then
+            if char.HumanoidRootPart:FindFirstChild("Box") then
+                char.HumanoidRootPart:FindFirstChild("Box"):Destroy()
+            end
+            if char.HumanoidRootPart:FindFirstChild("Health") then
+                char.HumanoidRootPart:FindFirstChild("Health"):Destroy()
+            end
+            if char.HumanoidRootPart:FindFirstChild("Name") then
+                char.HumanoidRootPart:FindFirstChild("Name"):Destroy()
+            end
+            if (char.HumanoidRootPart.Position - cam.CFrame.p).Magnitude < 400 then
+                if values["Visuals"]["ESP"]["Box"] then
+                    local BoxESP = Instance.new("BillboardGui")
+                    local Frame = Instance.new("Frame")
+                    local Frame_2 = Instance.new("Frame")
+                    local Frame_3 = Instance.new("Frame")
+                    local Frame_4 = Instance.new("Frame")
+                    local Frame_5 = Instance.new("Frame")
+                    local Frame_6 = Instance.new("Frame")
+                    local Frame_7 = Instance.new("Frame")
+                    local Frame_8 = Instance.new("Frame")
+                    local Frame_9 = Instance.new("Frame")
+                    local Frame_10 = Instance.new("Frame")
+                    local Frame_11 = Instance.new("Frame")
+                    local Frame_12 = Instance.new("Frame")
+                    BoxESP.Name = "Box"
+                    BoxESP.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                    BoxESP.Active = true
+                    BoxESP.AlwaysOnTop = true
+                    BoxESP.ExtentsOffset = Vector3.new(0, -0.5, 0)
+                    BoxESP.LightInfluence = 1.000
+                    BoxESP.Size = UDim2.new(4.5, 0, 5.5, 0)
+                    Frame.BackgroundColor3 = tocolor(values["Visuals"]["ESP"]["Box Color"])
+                    Frame.BorderSizePixel = 0
+                    Frame.Position = UDim2.new(0, 0, 0, 1)
+                    Frame.Size = UDim2.new(1, 0, 0, 1)
+                    Frame.BackgroundTransparency = 0
+                    Frame.Parent = BoxESP
+                    Frame_2.BackgroundColor3 = tocolor(values["Visuals"]["ESP"]["Box Color"])
+                    Frame_2.BorderSizePixel = 0
+                    Frame_2.Position = UDim2.new(0, 1, 0, 0)
+                    Frame_2.Size = UDim2.new(0, 1, 1, 0)
+                    Frame_2.BackgroundTransparency = 0
+                    Frame_2.Parent = BoxESP
+                    Frame_3.BackgroundColor3 = tocolor(values["Visuals"]["ESP"]["Box Color"])
+                    Frame_3.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_3.BorderSizePixel = 0
+                    Frame_3.Position = UDim2.new(1, -2, 0, 0)
+                    Frame_3.Size = UDim2.new(0, 1, 1, 0)
+                    Frame_3.BackgroundTransparency = 0
+                    Frame_3.Parent = BoxESP
+                    Frame_4.BackgroundColor3 = tocolor(values["Visuals"]["ESP"]["Box Color"])
+                    Frame_4.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_4.BorderSizePixel = 0
+                    Frame_4.Position = UDim2.new(0, 0, 1, -2)
+                    Frame_4.Size = UDim2.new(1, 0, 0, 1)
+                    Frame_4.BackgroundTransparency = 0
+                    Frame_4.Parent = BoxESP
+                    Frame_5.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_5.BorderSizePixel = 0
+                    Frame_5.Position = UDim2.new(0, 2, 0, 2)
+                    Frame_5.Size = UDim2.new(0, 1, 1, -4)
+                    Frame_5.Parent = BoxESP
+                    Frame_6.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_6.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_6.BorderSizePixel = 0
+                    Frame_6.Position = UDim2.new(1, -3, 0, 2)
+                    Frame_6.Size = UDim2.new(0, 1, 1, -4)
+                    Frame_6.Parent = BoxESP
+                    Frame_7.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_7.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_7.BorderSizePixel = 0
+                    Frame_7.Position = UDim2.new(0, 0, 1, -1)
+                    Frame_7.Size = UDim2.new(1, 0, 0, 1)
+                    Frame_7.Parent = BoxESP
+                    Frame_8.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_8.BorderSizePixel = 0
+                    Frame_8.Position = UDim2.new(0, 2, 0, 2)
+                    Frame_8.Size = UDim2.new(1, -4, 0, 1)
+                    Frame_8.Parent = BoxESP
+                    Frame_9.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_9.BorderSizePixel = 0
+                    Frame_9.Size = UDim2.new(1, 0, 0, 1)
+                    Frame_9.Parent = BoxESP
+                    Frame_10.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_10.BorderSizePixel = 0
+                    Frame_10.Size = UDim2.new(0, 1, 1, 0)
+                    Frame_10.Parent = BoxESP
+                    Frame_11.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_11.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_11.BorderSizePixel = 0
+                    Frame_11.Position = UDim2.new(1, -1, 0, 0)
+                    Frame_11.Size = UDim2.new(0, 1, 1, 0)
+                    Frame_11.Parent = BoxESP
+                    Frame_12.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_12.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    Frame_12.BorderSizePixel = 0
+                    Frame_12.Position = UDim2.new(0, 2, 1, -3)
+                    Frame_12.Size = UDim2.new(1, -4, 0, 1)
+                    Frame_12.Parent = BoxESP
+                    BoxESP.Adornee = char.HumanoidRootPart
+                    BoxESP.Parent = char.HumanoidRootPart
+                end
+                if values["Visuals"]["ESP"]["Health"] then
+                    local HealthESP = Instance.new("BillboardGui")
+                    local green = Instance.new("Frame")
+                    local white = Instance.new("Frame")
+                    HealthESP.Name = "Health"
+                    HealthESP.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                    HealthESP.Active = true
+                    HealthESP.AlwaysOnTop = true
+                    HealthESP.ExtentsOffset = Vector3.new(0, -0.5, 0)
+                    HealthESP.LightInfluence = 1.000
+                    HealthESP.Size = UDim2.new(1, 0, 5.5, 0)
+                    HealthESP.StudsOffset = Vector3.new(-2.8, 0, 0)
+                    green.Name = "green"
+                    green.AnchorPoint = Vector2.new(0, 1)
+                    green.BackgroundColor3 = tocolor(values["Visuals"]["ESP"]["Health Color"])
+                    green.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    green.BorderSizePixel = 0
+                    green.Position = UDim2.new(1, -2, 1, -1)
+                    green.Size = UDim2.new(0, 1, math.clamp(char.Humanoid.Health, 0, 1000)/char.Humanoid.MaxHealth, -2)
+                    green.ZIndex = 3
+                    green.Parent = HealthESP
+                    white.Name = "white"
+                    white.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                    white.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    white.Position = UDim2.new(1, -2, 0, 1)
+                    white.Size = UDim2.new(0, 1, 1, -2)
+                    white.ZIndex = 2
+                    white.Parent = HealthESP
+                    HealthESP.Adornee = char.HumanoidRootPart
+                    HealthESP.Parent = char.HumanoidRootPart
+                end
+                if values["Visuals"]["ESP"]["Name"] then
+                    local NameESP = Instance.new("BillboardGui")
+                    local name = Instance.new("TextLabel")
+                    NameESP.Name = "Name"
+                    NameESP.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                    NameESP.Active = true
+                    NameESP.AlwaysOnTop = true
+                    NameESP.ExtentsOffset = Vector3.new(0, -0.5, 0)
+                    NameESP.LightInfluence = 1.000
+                    NameESP.Size = UDim2.new(4.5, 0, 2, 0)
+                    NameESP.StudsOffset = Vector3.new(0, 3.8, 0)
+                    name.Name = "name"
+                    name.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                    name.BackgroundTransparency = 1.000
+                    name.Size = UDim2.new(1, 0, 1, 0)
+                    name.Font = "GothamBold"
+                    name.Text = char.Name
+                    name.TextColor3 =  tocolor(values["Visuals"]["ESP"]["Name Color"])
+                    name.TextSize = 14
+                    name.TextStrokeTransparency = 0.100
+                    name.TextYAlignment = Enum.TextYAlignment.Bottom
+                    name.TextTransparency = 0
+                    name.Parent = NameESP
+                    NameESP.Adornee = char.HumanoidRootPart
+                    NameESP.Parent = char.HumanoidRootPart
+                end
+            end
+        end
+    end
+    for _,obj in pairs(workspace.Map.ATMs:GetChildren()) do
+        if obj:FindFirstChild("MainPart") ~= nil then
+            if values["Visuals"]["ATM ESP"]["Enabled"] then
+                if obj.MainPart:FindFirstChild("BoxHandleAdornment") then
+                    local handle = obj.MainPart:FindFirstChild("BoxHandleAdornment")
+                    handle.Color3 = tocolor(values["Visuals"]["ATM ESP"]["Color"])
+                    handle.Transparency = values["Visuals"]["ATM ESP"]["Transparency"]/100
+                else
+                    local handle = Instance.new("BoxHandleAdornment")
+                    handle.ZIndex = 5
+                    handle.AlwaysOnTop = true
+                    handle.Size = obj.MainPart.Size
+                    handle.Color3 = tocolor(values["Visuals"]["ATM ESP"]["Color"])
+                    handle.Transparency = values["Visuals"]["ATM ESP"]["Transparency"]/100
+                    handle.Parent = obj.MainPart
+                    handle.Adornee = obj.MainPart
+                end
+            else
+                if obj.MainPart:FindFirstChild("BoxHandleAdornment") then
+                    obj.MainPart:FindFirstChild("BoxHandleAdornment"):Destroy()
+                end
+            end
+        end
+    end
+    for _,obj in pairs(workspace.Map.CashRegisters:GetChildren()) do
+        if obj:FindFirstChild("MainPart") ~= nil then
+            if string.find(obj.Name, "Safe") then
+                if values["Visuals"]["Safe ESP"]["Enabled"] then
+                    if obj.MainPart:FindFirstChild("BoxHandleAdornment") then
+                        local handle = obj.MainPart:FindFirstChild("BoxHandleAdornment")
+                        handle.Color3 = tocolor(values["Visuals"]["Safe ESP"]["Color"])
+                        handle.Transparency = values["Visuals"]["Safe ESP"]["Transparency"]/100
+                    else
+                        local handle = Instance.new("BoxHandleAdornment")
+                        handle.ZIndex = 5
+                        handle.AlwaysOnTop = true
+                        handle.Size = obj.MainPart.Size
+                        handle.Color3 = tocolor(values["Visuals"]["Safe ESP"]["Color"])
+                        handle.Transparency = values["Visuals"]["Safe ESP"]["Transparency"]/100
+                        handle.Parent = obj.MainPart
+                        handle.Adornee = obj.MainPart
+                    end
+                else
+                    if obj.MainPart:FindFirstChild("BoxHandleAdornment") then
+                        obj.MainPart:FindFirstChild("BoxHandleAdornment"):Destroy()
+                    end
+                end
+            end
+            if string.find(obj.Name, "Register") then
+                if values["Visuals"]["Register ESP"]["Enabled"] then
+                    if obj.MainPart:FindFirstChild("BoxHandleAdornment") then
+                        local handle = obj.MainPart:FindFirstChild("BoxHandleAdornment")
+                        handle.Color3 = tocolor(values["Visuals"]["Register ESP"]["Color"])
+                        handle.Transparency = values["Visuals"]["Register ESP"]["Transparency"]/100
+                    else
+                        local handle = Instance.new("BoxHandleAdornment")
+                        handle.ZIndex = 5
+                        handle.AlwaysOnTop = true
+                        handle.Size = obj.MainPart.Size
+                        handle.Color3 = tocolor(values["Visuals"]["Register ESP"]["Color"])
+                        handle.Transparency = values["Visuals"]["Register ESP"]["Transparency"]/100
+                        handle.Parent = obj.MainPart
+                        handle.Adornee = obj.MainPart
+                    end
+                else
+                    if obj.MainPart:FindFirstChild("BoxHandleAdornment") then
+                        obj.MainPart:FindFirstChild("BoxHandleAdornment"):Destroy()
+                    end
+                end
+            end
+        end
+    end
+    end)
+end
